@@ -39,7 +39,7 @@ class Synth(data.Dataset):
         self.mean, self.std = self._compute_mean()
 
     def _compute_mean(self):
-        meanstd_file = './data/synth_segm/mean.pth.tar'
+        meanstd_file = './data/synth/mean_segm.pth.tar'
         if isfile(meanstd_file):
             meanstd = torch.load(meanstd_file)
         else:
@@ -76,8 +76,9 @@ class Synth(data.Dataset):
         # pts[:, 0:2] -= 1  # Convert pts to zero based
 
         # c = torch.Tensor(a['objpos']) - 1
-        c = torch.Tensor(a['objpos'])
-        s = a['scale_provided']
+        # c = torch.Tensor(a['objpos'])
+        c = torch.Tensor([-1, -1])
+        s = 1 #a['scale_provided']
 
         # Adjust center/scale slightly to avoid cropping limbs
         if c[0] != -1:
