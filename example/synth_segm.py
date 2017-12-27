@@ -80,13 +80,13 @@ def main(args):
 
     # Data loading code
     train_loader = torch.utils.data.DataLoader(
-        datasets.Synth('data/synth/synth_segm_annotations.json', 'data/synth/images',
+        datasets.Synth('data/synth/synth_segm_annotations.json', 'data/synth/',
                       sigma=args.sigma, label_type=args.label_type),
         batch_size=args.train_batch, shuffle=True,
         num_workers=args.workers, pin_memory=True)
     
     val_loader = torch.utils.data.DataLoader(
-        datasets.Synth('data/synth/synth_segm_annotations.json', 'data/synth/images',
+        datasets.Synth('data/synth/synth_segm_annotations.json', 'data/synth/',
                       sigma=args.sigma, label_type=args.label_type, train=False),
         batch_size=args.test_batch, shuffle=False,
         num_workers=args.workers, pin_memory=True)
