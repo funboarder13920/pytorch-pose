@@ -6,7 +6,9 @@ import sys
 import time
 import matplotlib.pyplot as plt
 
-sys.path.insert(0, "/mnt/c/Users/Valentin/Documents/MVA 2017-2018/Object Recognition/projet/pytorch-pose")
+# sys.path.insert(0, "/mnt/c/Users/Valentin/Documents/MVA 2017-2018/Object Recognition/projet/pytorch-pose")
+# sys.path.insert(0, "~/torch-pose")
+sys.path.insert(0, "/home/ubuntu/pytorch-pose")
 
 import torch
 import torch.nn.parallel
