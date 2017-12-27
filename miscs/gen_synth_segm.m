@@ -2,8 +2,6 @@ addpath('jsonlab/')
 
 % Download Synthetic hand dataset 
 SYNTHROOTLOCAL = '../../hands_2017_compressed/data/synthetic/';
-SYNTHROOT = '../../data/hands_2017_compressed/';
-
 
 IMG = 'rgb_small/';
 SEGM = 'segm/';
@@ -23,8 +21,8 @@ for im = 1:size(imgs,1)
     % trivial stuff for LEEDS
     joint_all(count).dataset = 'SYNTH';
     joint_all(count).isValidation = 0 + 1*(im>nb_train);
-    joint_all(count).img_paths = strcat(SYNTHROOT, IMG, imgs(im).name);
-    joint_all(count).img_target_paths = strcat(SYNTHROOT, SEGM, strrep(imgs(im).name,'.png', '.jpg'));
+    joint_all(count).img_paths = strcat(IMG, imgs(im).name);
+    joint_all(count).img_target_paths = strcat(SEGM, strrep(imgs(im).name,'.png', '.jpg'));
     joint_all(count).annolist_index = count;
 
     path_this = strcat(SYNTHROOTLOCAL, IMG, imgs(im).name);
