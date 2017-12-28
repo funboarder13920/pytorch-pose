@@ -76,9 +76,8 @@ class Synth(data.Dataset):
         # pts[:, 0:2] -= 1  # Convert pts to zero based
 
         # c = torch.Tensor(a['objpos']) - 1
-        # c = torch.Tensor(a['objpos'])
-        c = torch.Tensor([-1, -1])
-        s = 1 #a['scale_provided']
+        c = torch.Tensor(a['objpos'])
+        s = a['scale_provided']
 
         # Adjust center/scale slightly to avoid cropping limbs
         if c[0] != -1:
@@ -105,7 +104,7 @@ class Synth(data.Dataset):
         # Generate ground truth
         img_target_path = os.path.join(self.img_folder, a['img_target_paths'])
         img_target = load_image(img_target_path)  # CxHxW
-        target = crop(img_target, c, s, [self.out_res, self.out_res], rot=r)
+        target = to_grey(crop(img_target, c, s, [self.out_res, self.out_res], rot=r))
 
         # Meta info
         meta = {'index' : index, 'center' : c, 'scale' : s}

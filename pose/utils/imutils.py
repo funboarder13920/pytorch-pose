@@ -4,6 +4,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 import scipy.misc
+from skimage import color
 
 from .misc import *
 
@@ -18,6 +19,10 @@ def im_to_torch(img):
     if img.max() > 1:
         img /= 255
     return img
+
+def to_grey(img):
+    img = color.rgb2gray(im_to_numpy(img))
+    return im_to_torch(img.reshape(img.shape+(1,)))
 
 def load_image(img_path):
     # H x W x C => C x H x W
