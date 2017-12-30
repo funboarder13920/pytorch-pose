@@ -98,13 +98,15 @@ class Synth(data.Dataset):
             img[2, :, :].mul_(random.uniform(0.8, 1.2)).clamp_(0, 1)
 
         # Prepare image and groundtruth map
-        inp = crop(img, c, s, [self.inp_res, self.inp_res], rot=r)
+        # inp = crop(img, c, s, [self.inp_res, self.inp_res], rot=r)
+        inp = resize(img,[self.inp_res, self.inp_res])
         inp = color_normalize(inp, self.mean, self.std)
 
         # Generate ground truth
         img_target_path = os.path.join(self.img_folder, a['img_target_paths'])
         img_target = load_image(img_target_path)  # CxHxW
-        target = to_grey(crop(img_target, c, s, [self.out_res, self.out_res], rot=r))
+        # target = to_grey(crop(img_target, c, s, [self.out_res, self.out_res], rot=r))
+        target = to_grey(resize(img_target, [self.out_res, self.out_res]))
 
         # Meta info
         meta = {'index' : index, 'center' : c, 'scale' : s}
