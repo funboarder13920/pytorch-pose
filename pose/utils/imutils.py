@@ -30,7 +30,7 @@ def load_image(img_path):
     # H x W x C => C x H x W
     return im_to_torch(scipy.misc.imread(img_path, mode='RGB'))
 
-def load_exr(exrfile)
+def load_exr(exrfile):
     file = OpenEXR.InputFile(exrfile)
     pt = Imath.PixelType(Imath.PixelType.FLOAT)
     dw = file.header()['dataWindow']
