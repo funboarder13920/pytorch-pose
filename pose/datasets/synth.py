@@ -23,7 +23,7 @@ class Synth(data.Dataset):
         self.out_res = out_res
         self.sigma = sigma
         self.zoom_factor = zoom_factor
-        self.shit_factor = shift_factor
+        self.shift_factor = shift_factor
         self.rot_factor = rot_factor
         self.label_type = label_type
 
@@ -84,12 +84,12 @@ class Synth(data.Dataset):
         zoom = 1
         shift = [0, 0]
         if self.is_train:
-            zoom = torch.randn(1).mul_(zf).add(zf).clamp(-2*rt, 2*sf)[0] if random.random() <= 0.6 else 1
+            zoom = torch.randn(1).mul_(zf).add(zf).clamp(0.1, 1.5*zf)[0] if random.random() <= 0.6 else 1
             r = torch.randn(1).mul_(rf).clamp(-2*rf, 2*rf)[0] if random.random() <= 0.6 else 0
             if random.random() <= 0.6:
               sx = torch.randn(1).mul_(syf).clamp(-2*syf, 2*syf)[0]
               sy = torch.randn(1).mul_(sxf).clamp(-2*sxf, 2*sxf)[0]
-              shift = [sx, sy]
+              shift = [int(sx), int(sy)]
 
             # Color
             img[0, :, :].mul_(random.uniform(0.8, 1.2)).clamp_(0, 1)
@@ -97,18 +97,18 @@ class Synth(data.Dataset):
             img[2, :, :].mul_(random.uniform(0.8, 1.2)).clamp_(0, 1)
 
         # Prepare image and groundtruth map
-        inp = augment_data(img,[self.inp_res, self.inp_res], zoom=zoom, rot=rot, shift=shift)
+        inp = augment_data(img,[self.inp_res, self.inp_res], zoom=zoom, rot=r, shift=shift)
         inp = color_normalize(inp, self.mean, self.std)
 
         # Generate ground truth
         img_target_path = os.path.join(self.img_folder, a['img_target_paths'].replace('.png', '.exr'))
         img_target = load_exr(img_target_path)
-        img_target = augment_data(img_target, [self.out_res, self.out_res], zoom=zoom, rot=rot, shift=shift)
+        img_target = augment_data(img_target, [self.out_res, self.out_res], zoom=zoom, rot=r, shift=shift)
 
         target = to_grey(img_target)
 
         # Meta info
-        meta = {'index' : index, 'center' : c, 'scale' : s}
+        meta = {'index' : index}
 
         return inp, target, meta
 

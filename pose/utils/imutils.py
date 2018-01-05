@@ -6,6 +6,7 @@ import numpy as np
 import scipy.misc
 from skimage import color
 import OpenEXR
+import Imath
 from PIL import Image
 
 from .misc import *
@@ -44,12 +45,13 @@ def load_exr(exrfile):
     if lighest != darkest:
         scale = 255 / (lighest - darkest)
     else:
-        print("no segmentation with", filename, ' darkest : ', darkest)
+        print("no segmentation with", exrfile, ' darkest : ', darkest)
         scale = 0
         darkest = 0
     def normalize_0_255(v):
         return (v * scale) + darkest
-    return im_to_torch(np.array([im.point(normalize_0_255).convert("L") for im in rgbf]))
+    img_p =  [np.array(im.point(normalize_0_255).convert("L")) for im in rgbf]
+    return to_torch(np.array(img_p)).float()
 
 def resize(img, owidth, oheight):
     img = im_to_numpy(img)
