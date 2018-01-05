@@ -5,6 +5,8 @@ import torch.nn as nn
 import numpy as np
 import scipy.misc
 from skimage import color
+import OpenEXR
+from PIL import Image
 
 from .misc import *
 
@@ -27,6 +29,27 @@ def to_grey(img):
 def load_image(img_path):
     # H x W x C => C x H x W
     return im_to_torch(scipy.misc.imread(img_path, mode='RGB'))
+
+def load_exr(exrfile)
+    file = OpenEXR.InputFile(exrfile)
+    pt = Imath.PixelType(Imath.PixelType.FLOAT)
+    dw = file.header()['dataWindow']
+    size = (dw.max.x - dw.min.x + 1, dw.max.y - dw.min.y + 1)
+
+    rgbf = [Image.frombytes("F", size, file.channel(c, pt)) for c in "RGB"]
+
+    extrema = [im.getextrema() for im in rgbf]
+    darkest = min([lo for (lo,hi) in extrema])
+    lighest = max([hi for (lo,hi) in extrema])
+    if lighest != darkest:
+        scale = 255 / (lighest - darkest)
+    else:
+        print("no segmentation with", filename, ' darkest : ', darkest)
+        scale = 0
+        darkest = 0
+    def normalize_0_255(v):
+        return (v * scale) + darkest
+    return im_to_torch(np.array([im.point(normalize_0_255).convert("L") for im in rgbf]))
 
 def resize(img, owidth, oheight):
     img = im_to_numpy(img)

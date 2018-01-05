@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import os
 import numpy as np
 import scipy.misc
+import scipy.ndarray
 import matplotlib.pyplot as plt
 import torch
 
@@ -178,3 +179,30 @@ def crop(img, center, scale, res, rot=0):
 
     new_img = im_to_torch(scipy.misc.imresize(new_img, res))
     return new_img
+
+
+def augment_data(img, res, zoom=1, rot=0, shift=[0, 0]):
+    img = im_to_numpy(img)
+    new_shape = res
+    if len(img.shape) > 2:
+        new_shape += [img.shape[2]]
+    new_img = np.zeros(new_shape)
+
+    zoom_x, zoom_y = int(zoom*img.shape[0]), int(zoom*img.shape[1])
+    img = scipy.misc.imrotate(img, rotate)
+    img = scipy.misc.imresize(img, [zoom_x, zoom_y])
+    img = scipy.ndimage.shift(img, shift+[0])
+
+    new_cx, new_cy = math.floor(res[0]/2), math.floor(res[1]/2)
+    new_cx = max(0,min(new_cx + shift[0], res[0]))
+    new_cy = max(0,min(new_cx + shift[1], res[1]))
+
+    old_cx, old_cy = math.floor(img.shape[0]/2), math.floor(img.shape[1]/2)
+    remain_x = 1 if 2*old_cx!=img.shape[0] else 0
+    remain_y =  1 if 2*old_cy!=img.shape[1] else 0
+    beg_x, end_x = max(0, new_cx-old_cx), min(res[0], new_cx+old_cx+remain_x)
+    beg_y, end_y = max(0, new_cy-old_cy), min(res[1], new_cy+old_cy+remain_y)
+    beg_old_x, end_old_x = -min(0, new_cx-old_cx), img.shape[0] - max(0, new_cx+old_cx+remain_x - res[0])
+    beg_old_y, end_old_y = -min(0, new_cy-old_cy), img.shape[1] - max(0, new_cy+old_cy+remain_y - res[1])
+    new_img[beg_x:end_x, beg_y:end_y] = img[beg_old_x:end_old_x,beg_old_y:end_old_y]
+    return im_to_torch(new_img)

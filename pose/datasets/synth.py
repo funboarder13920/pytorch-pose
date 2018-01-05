@@ -16,13 +16,14 @@ from pose.utils.transforms import *
 
 class Synth(data.Dataset):
     def __init__(self, jsonfile, img_folder, inp_res=256, out_res=64, train=True, sigma=1,
-                 scale_factor=0.25, rot_factor=30, label_type='Gaussian'):
+                 zoom_factor=0.6, rot_factor=30, shift_factor=[30, 30], label_type='Gaussian'):
         self.img_folder = img_folder    # root image folders
         self.is_train = train           # training set or test set
         self.inp_res = inp_res
         self.out_res = out_res
         self.sigma = sigma
-        self.scale_factor = scale_factor
+        self.zoom_factor = zoom_factor
+        self.shit_factor = shift_factor
         self.rot_factor = rot_factor
         self.label_type = label_type
 
@@ -65,8 +66,9 @@ class Synth(data.Dataset):
         return meanstd['mean'], meanstd['std']
 
     def __getitem__(self, index):
-        sf = self.scale_factor
+        zf = self.zoom_factor
         rf = self.rot_factor
+        sxf, syf = self.shift_factor
         if self.is_train:
             a = self.anno[self.train[index]]
         else:
@@ -75,22 +77,19 @@ class Synth(data.Dataset):
         img_path = os.path.join(self.img_folder, a['img_paths'])
         # pts[:, 0:2] -= 1  # Convert pts to zero based
 
-        # c = torch.Tensor(a['objpos']) - 1
-        c = torch.Tensor(a['objpos'])
-        s = a['scale_provided']
-
-        # Adjust center/scale slightly to avoid cropping limbs
-        if c[0] != -1:
-            c[1] = c[1] + 15 * s
-            s = s * 1.25
-
         # For single-person pose estimation with a centered/scaled figure
         img = load_image(img_path)  # CxHxW
 
         r = 0
+        zoom = 1
+        shift = [0, 0]
         if self.is_train:
-            s = s*torch.randn(1).mul_(sf).add_(1).clamp(1-sf, 1+sf)[0]
+            zoom = torch.randn(1).mul_(zf).add(zf).clamp(-2*rt, 2*sf)[0] if random.random() <= 0.6 else 1
             r = torch.randn(1).mul_(rf).clamp(-2*rf, 2*rf)[0] if random.random() <= 0.6 else 0
+            if random.random() <= 0.6:
+              sx = torch.randn(1).mul_(syf).clamp(-2*syf, 2*syf)[0]
+              sy = torch.randn(1).mul_(sxf).clamp(-2*sxf, 2*sxf)[0]
+              shift = [sx, sy]
 
             # Color
             img[0, :, :].mul_(random.uniform(0.8, 1.2)).clamp_(0, 1)
@@ -98,15 +97,15 @@ class Synth(data.Dataset):
             img[2, :, :].mul_(random.uniform(0.8, 1.2)).clamp_(0, 1)
 
         # Prepare image and groundtruth map
-        # inp = crop(img, c, s, [self.inp_res, self.inp_res], rot=r)
-        inp = resize(img,[self.inp_res, self.inp_res])
+        inp = augment_data(img,[self.inp_res, self.inp_res], zoom=zoom, rot=rot, shift=shift)
         inp = color_normalize(inp, self.mean, self.std)
 
         # Generate ground truth
-        img_target_path = os.path.join(self.img_folder, a['img_target_paths'])
-        img_target = load_image(img_target_path)  # CxHxW
-        # target = to_grey(crop(img_target, c, s, [self.out_res, self.out_res], rot=r))
-        target = to_grey(resize(img_target, [self.out_res, self.out_res]))
+        img_target_path = os.path.join(self.img_folder, a['img_target_paths'].replace('.png', '.exr'))
+        img_target = load_exr(img_target_path)
+        img_target = augment_data(img_target, [self.out_res, self.out_res], zoom=zoom, rot=rot, shift=shift)
+
+        target = to_grey(img_target)
 
         # Meta info
         meta = {'index' : index, 'center' : c, 'scale' : s}
