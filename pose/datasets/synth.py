@@ -16,7 +16,7 @@ from pose.utils.transforms import *
 
 class Synth(data.Dataset):
     def __init__(self, jsonfile, img_folder, inp_res=256, out_res=64, train=True, sigma=1,
-                 zoom_factor=0.6, rot_factor=30, shift_factor=[30, 30], label_type='Gaussian'):
+                 zoom_factor=0.2, rot_factor=30, shift_factor=[30, 30], label_type='Gaussian'):
         self.img_folder = img_folder    # root image folders
         self.is_train = train           # training set or test set
         self.inp_res = inp_res
@@ -84,7 +84,7 @@ class Synth(data.Dataset):
         zoom = 1
         shift = [0, 0]
         if self.is_train:
-            zoom = torch.randn(1).mul_(zf).add(zf).clamp(0.1, 1.5*zf)[0] if random.random() <= 0.6 else 1
+            zoom = torch.randn(1).mul_(zf).add(1).clamp(0.6, 1.5)[0] if random.random() <= 0.6 else 1
             r = torch.randn(1).mul_(rf).clamp(-2*rf, 2*rf)[0] if random.random() <= 0.6 else 0
             if random.random() <= 0.6:
               sx = torch.randn(1).mul_(syf).clamp(-2*syf, 2*syf)[0]

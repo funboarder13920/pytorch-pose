@@ -45,7 +45,7 @@ def load_exr(exrfile):
     if lighest != darkest:
         scale = 255 / (lighest - darkest)
     else:
-        print("no segmentation with", exrfile, ' darkest : ', darkest)
+        # print("no segmentation with", exrfile, ' darkest : ', darkest)
         scale = 0
         darkest = 0
     def normalize_0_255(v):
