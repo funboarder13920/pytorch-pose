@@ -18,7 +18,7 @@ import torchvision.datasets as datasets
 
 from pose import Bar
 from pose.utils.logger import Logger, savefig
-from pose.utils.evaluation import accuracy, AverageMeter, final_preds
+from pose.utils.evaluation import accuracy, AverageMeter
 from pose.utils.misc import save_checkpoint, save_pred, adjust_learning_rate
 from pose.utils.osutils import mkdir_p, isfile, isdir, join
 from pose.utils.imutils import batch_with_heatmap
@@ -111,7 +111,7 @@ def main(args):
         train_loss, train_acc = train(train_loader, model, criterion, optimizer, args.debug, args.flip)
 
         # evaluate on validation set
-        valid_loss, valid_acc, predictions = validate(val_loader, model, criterion, args.num_classes,
+        valid_loss, valid_acc = validate(val_loader, model, criterion, args.num_classes,
                                                       args.debug, args.flip)
 
         # append logger file
@@ -126,7 +126,7 @@ def main(args):
             'state_dict': model.state_dict(),
             'best_acc': best_acc,
             'optimizer' : optimizer.state_dict(),
-        }, predictions, is_best, checkpoint=args.checkpoint)
+        }, torch.FloatTensor([]), is_best, checkpoint=args.checkpoint)
 
     logger.close()
     logger.plot(['Train Acc', 'Val Acc'])
@@ -251,12 +251,6 @@ def validate(val_loader, model, criterion, num_classes, debug=False, flip=True):
             loss += criterion(o, target_var)
         acc = accuracy(score_map, target.cpu(), idx)
 
-        # generate predictions
-        preds = final_preds(score_map, meta['center'], meta['scale'], [64, 64])
-        for n in range(score_map.size(0)):
-            predictions[meta['index'][n], :, :] = preds[n, :, :]
-
-
         if debug:
             gt_batch_img = batch_with_heatmap(inputs, target)
             pred_batch_img = batch_with_heatmap(inputs, score_map)
@@ -293,7 +287,7 @@ def validate(val_loader, model, criterion, num_classes, debug=False, flip=True):
         bar.next()
 
     bar.finish()
-    return losses.avg, acces.avg, predictions
+    return losses.avg, acces.avg
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='PyTorch ImageNet Training')
