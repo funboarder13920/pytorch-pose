@@ -83,7 +83,7 @@ class Synth(data.Dataset):
         r = 0
         zoom = 1
         shift = [0, 0]
-        if self.is_train and self.augmented:
+        if self.is_train:
             zoom = torch.randn(1).mul_(zf).add(1).clamp(0.6, 1.5)[0] if random.random() <= 0.6 else 1
             r = torch.randn(1).mul_(rf).clamp(-2*rf, 2*rf)[0] if random.random() <= 0.6 else 0
             if random.random() <= 0.6:
@@ -97,13 +97,15 @@ class Synth(data.Dataset):
             img[2, :, :].mul_(random.uniform(0.8, 1.2)).clamp_(0, 1)
 
         # Prepare image and groundtruth map
-        inp = augment_data(img, [self.inp_res, self.inp_res], zoom=zoom, rot=r, shift=shift)
+        # inp = augment_data(img, [self.inp_res, self.inp_res], zoom=zoom, rot=r, shift=shift)
+        inp = resize(img, self.inp_res, self.inp_res)
         inp = color_normalize(inp, self.mean, self.std)
 
         # Generate ground truth
         img_target_path = os.path.join(self.img_folder, a['img_target_paths'].replace('.png', '.exr'))
         img_target = load_exr(img_target_path)
-        img_target = augment_data(img_target, [self.out_res, self.out_res], zoom=zoom, rot=r, shift=shift)
+        # img_target = augment_data(img_target, [self.out_res, self.out_res], zoom=zoom, rot=r, shift=shift)
+        img_target = resize(img_target, self.out_res, self.out_res)
 
         target = to_grey(img_target)
 

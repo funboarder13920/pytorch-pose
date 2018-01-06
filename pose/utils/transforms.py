@@ -125,9 +125,6 @@ def transform_preds(coords, center, scale, res):
         coords[p, 0:2] = to_torch(transform(coords[p, 0:2], center, scale, res, 1, 0))
     return coords
 
-def resize(img, res):
-    return im_to_torch(scipy.misc.imresize(img, res))
-
 def crop(img, center, scale, res, rot=0):
     img = im_to_numpy(img)
 
