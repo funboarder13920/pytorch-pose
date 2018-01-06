@@ -188,7 +188,8 @@ def augment_data(img, res, zoom=1, rot=0, shift=[0, 0]):
     if len(img.shape) > 2:
         new_shape += [img.shape[2]]
     new_img = np.zeros(new_shape)
-    zoom_x, zoom_y = int(zoom*img.shape[0]), int(zoom*img.shape[1])
+    scale = zoom * res[0] / 200
+    zoom_x, zoom_y = int(scale*img.shape[0]), int(scale*img.shape[1])
     img = scipy.misc.imrotate(img, rot)
     img = scipy.misc.imresize(img, [zoom_x, zoom_y])
 

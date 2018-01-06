@@ -51,7 +51,10 @@ def load_exr(exrfile):
     def normalize_0_255(v):
         return (v * scale) + darkest
     img_p =  [np.array(im.point(normalize_0_255).convert("L")) for im in rgbf]
-    return to_torch(np.array(img_p)).float()
+    img_p = to_torch(np.array(img_p)).float()
+    if img_p.max() > 1:
+        img_p /= 255
+    return img_p
 
 def resize(img, owidth, oheight):
     img = im_to_numpy(img)

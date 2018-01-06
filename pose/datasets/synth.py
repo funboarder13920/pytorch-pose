@@ -16,7 +16,7 @@ from pose.utils.transforms import *
 
 class Synth(data.Dataset):
     def __init__(self, jsonfile, img_folder, inp_res=256, out_res=64, train=True, sigma=1,
-                 zoom_factor=0.2, rot_factor=30, shift_factor=[30, 30], label_type='Gaussian'):
+                 zoom_factor=0.2, rot_factor=30, shift_factor=[30, 30], augmented=False):
         self.img_folder = img_folder    # root image folders
         self.is_train = train           # training set or test set
         self.inp_res = inp_res
@@ -25,7 +25,7 @@ class Synth(data.Dataset):
         self.zoom_factor = zoom_factor
         self.shift_factor = shift_factor
         self.rot_factor = rot_factor
-        self.label_type = label_type
+        self.augmented = augmented
 
         # create train/val split
         with open(jsonfile) as anno_file:   
@@ -83,7 +83,7 @@ class Synth(data.Dataset):
         r = 0
         zoom = 1
         shift = [0, 0]
-        if self.is_train:
+        if self.is_train and self.augmented:
             zoom = torch.randn(1).mul_(zf).add(1).clamp(0.6, 1.5)[0] if random.random() <= 0.6 else 1
             r = torch.randn(1).mul_(rf).clamp(-2*rf, 2*rf)[0] if random.random() <= 0.6 else 0
             if random.random() <= 0.6:
@@ -97,7 +97,7 @@ class Synth(data.Dataset):
             img[2, :, :].mul_(random.uniform(0.8, 1.2)).clamp_(0, 1)
 
         # Prepare image and groundtruth map
-        inp = augment_data(img,[self.inp_res, self.inp_res], zoom=zoom, rot=r, shift=shift)
+        inp = augment_data(img, [self.inp_res, self.inp_res], zoom=zoom, rot=r, shift=shift)
         inp = color_normalize(inp, self.mean, self.std)
 
         # Generate ground truth
