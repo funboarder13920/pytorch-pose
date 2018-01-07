@@ -65,6 +65,14 @@ def resize(img, owidth, oheight):
     img = im_to_torch(img)
     return img
 
+def save_im_in(img, filename):
+    img = im_to_numpy(255*img)
+    scipy.misc.imsave(filename, img)
+
+def save_im_out(img, filename):
+    img = to_numpy(255*img)
+    scipy.misc.imsave(filename, img)
+
 # =============================================================================
 # Helpful functions generating groundtruth labelmap 
 # =============================================================================

@@ -21,7 +21,7 @@ from pose.utils.logger import Logger, savefig
 from pose.utils.evaluation import accuracy, AverageMeter
 from pose.utils.misc import save_checkpoint, save_pred, adjust_learning_rate
 from pose.utils.osutils import mkdir_p, isfile, isdir, join
-from pose.utils.imutils import batch_with_heatmap
+from pose.utils.imutils import batch_with_heatmap, save_im_in, save_im_out
 from pose.utils.transforms import fliplr, flip_back
 import pose.models as models
 import pose.datasets as datasets
@@ -162,21 +162,12 @@ def train(train_loader, model, criterion, optimizer, debug=False, flip=True):
             loss += criterion(output[j], target_var)
         acc = accuracy(score_map, target, idx)
 
-        if debug: # visualize groundtruth and predictions
-            gt_batch_img = batch_with_heatmap(inputs, target)
-            pred_batch_img = batch_with_heatmap(inputs, score_map)
-            if not gt_win or not pred_win:
-                ax1 = plt.subplot(121)
-                ax1.title.set_text('Groundtruth')
-                gt_win = plt.imshow(gt_batch_img)
-                ax2 = plt.subplot(122)
-                ax2.title.set_text('Prediction')
-                pred_win = plt.imshow(pred_batch_img)
-            else:
-                gt_win.set_data(gt_batch_img)
-                pred_win.set_data(pred_batch_img)
-            plt.pause(.05)
-            plt.draw()
+
+        if debug:
+            for j in range(len(score_map)):
+                save_im_in(inputs[j], "debug/test_in_{}.jpg".format(j))
+                save_im_out(score_map[j,0,:,:], "debug/test_out_{}.jpg".format(j))
+                save_im_out(target[j,0,:,:], "debug/test_target_{}.jpg".format(j))
 
         # measure accuracy and record loss
         losses.update(loss.data[0], inputs.size(0))
@@ -252,18 +243,10 @@ def validate(val_loader, model, criterion, num_classes, debug=False, flip=True):
         acc = accuracy(score_map, target.cpu(), idx)
 
         if debug:
-            gt_batch_img = batch_with_heatmap(inputs, target)
-            pred_batch_img = batch_with_heatmap(inputs, score_map)
-            if not gt_win or not pred_win:
-                plt.subplot(121)
-                gt_win = plt.imshow(gt_batch_img)
-                plt.subplot(122)
-                pred_win = plt.imshow(pred_batch_img)
-            else:
-                gt_win.set_data(gt_batch_img)
-                pred_win.set_data(pred_batch_img)
-            plt.pause(.05)
-            plt.draw()
+            for j in range(len(score_map)):
+                save_im_in(inputs[j], "debug/test_in_{}.jpg".format(j))
+                save_im_out(score_map[j,0,:,:], "debug/test_out_{}.jpg".format(j))
+                save_im_out(target[j,0,:,:], "debug/test_target_{}.jpg".format(j))
 
         # measure accuracy and record loss
         losses.update(loss.data[0], inputs.size(0))
