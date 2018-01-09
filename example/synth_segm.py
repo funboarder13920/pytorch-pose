@@ -18,7 +18,7 @@ import torchvision.datasets as datasets
 
 from pose import Bar
 from pose.utils.logger import Logger, savefig
-from pose.utils.evaluation import accuracy, AverageMeter
+from pose.utils.evaluation import accuracy_segm, AverageMeter
 from pose.utils.misc import save_checkpoint, save_pred, adjust_learning_rate
 from pose.utils.osutils import mkdir_p, isfile, isdir, join
 from pose.utils.imutils import batch_with_heatmap, save_im_in, save_im_out
@@ -30,10 +30,7 @@ model_names = sorted(name for name in models.__dict__
     if name.islower() and not name.startswith("__")
     and callable(models.__dict__[name]))
 
-idx = [1]
-
 best_acc = 0
-
 
 def main(args):
     global best_acc
@@ -160,7 +157,7 @@ def train(train_loader, model, criterion, optimizer, debug=False, flip=True):
         loss = criterion(output[0], target_var)
         for j in range(1, len(output)):
             loss += criterion(output[j], target_var)
-        acc = accuracy(score_map, target, idx)
+        acc = accuracy_segm(score_map, target)
 
 
         if debug:

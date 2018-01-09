@@ -8,7 +8,7 @@ from random import randint
 from .misc import *
 from .transforms import transform, transform_preds
 
-__all__ = ['accuracy', 'AverageMeter']
+__all__ = ['accuracy', 'AverageMeter', 'accuracy_segm']
 
 def get_preds(scores):
     ''' get predictions from score maps in torch Tensor
@@ -47,6 +47,12 @@ def dist_acc(dists, thr=0.5):
         return dists.le(thr).eq(dists.ne(-1)).sum()*1.0 / dists.ne(-1).sum()
     else:
         return -1
+
+def accuracy_segm(output, target):
+    ''' Calculate the accuracy for segmentation by comparing the distance between output and target
+        Expect output and target to be (nxdx1) tensors
+    '''
+    return torch.norm(output-target)
 
 def accuracy(output, target, idxs, thr=0.5):
     ''' Calculate accuracy according to PCK, but uses ground truth heatmap rather than x,y locations
