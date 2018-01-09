@@ -247,7 +247,7 @@ def validate(val_loader, model, criterion, num_classes, debug=False, flip=True):
 
         # measure accuracy and record loss
         losses.update(loss.data[0], inputs.size(0))
-        acces.update(acc, inputs.size(0))
+        acces.update(acc[0], inputs.size(0))
 
         # measure elapsed time
         batch_time.update(time.time() - end)

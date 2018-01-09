@@ -58,7 +58,7 @@ def accuracy_segm(output, target):
     tflat = target.view(-1)
     intersection = (iflat * tflat).sum()
 
-    return 100*(2. * intersection + smooth) / (iflat.sum() + tflat.sum() + smooth)
+    return [100*(2. * intersection + smooth) / (iflat.sum() + tflat.sum() + smooth)]
 
 def accuracy(output, target, idxs, thr=0.5):
     ''' Calculate accuracy according to PCK, but uses ground truth heatmap rather than x,y locations
