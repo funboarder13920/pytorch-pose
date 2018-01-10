@@ -22,7 +22,7 @@ for im = 1:size(imgs,1)
     joint_all(count).dataset = 'SYNTH';
     joint_all(count).isValidation = 0 + 1*(im>nb_train);
     joint_all(count).img_paths = strcat(IMG, imgs(im).name);
-    joint_all(count).img_target_paths = strcat(SEGM, strrep(imgs(im).name,'.png', '.jpg'));
+    joint_all(count).img_target_paths = strcat(SEGM, strrep(imgs(im).name,'.png', '.exr'));
     joint_all(count).annolist_index = count;
 
     path_this = strcat(SYNTHROOTLOCAL, IMG, imgs(im).name);
