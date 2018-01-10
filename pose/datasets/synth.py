@@ -87,9 +87,9 @@ class Synth(data.Dataset):
             zoom = torch.randn(1).mul_(zf).add(1).clamp(0.6, 1.5)[0] if random.random() <= 0.6 else 1
             r = torch.randn(1).mul_(rf).clamp(-2*rf, 2*rf)[0] if random.random() <= 0.6 else 0
             if random.random() <= 0.6:
-              sx = torch.randn(1).mul_(syf).clamp(-2*syf, 2*syf)[0]
-              sy = torch.randn(1).mul_(sxf).clamp(-2*sxf, 2*sxf)[0]
-              shift = [int(sx), int(sy)]
+                sx = torch.randn(1).mul_(syf).clamp(-2*syf, 2*syf)[0]
+                sy = torch.randn(1).mul_(sxf).clamp(-2*sxf, 2*sxf)[0]
+                shift = [int(sx), int(sy)]
 
             # Color
             img[0, :, :].mul_(random.uniform(0.8, 1.2)).clamp_(0, 1)
@@ -102,7 +102,7 @@ class Synth(data.Dataset):
         inp = color_normalize(inp, self.mean, self.std)
 
         # Generate ground truth
-        img_target_path = os.path.join(self.img_folder, a['img_target_paths'].replace('.png', '.exr'))
+        img_target_path = img_path if a['dataset'] == 'GUN' else os.path.join(self.img_folder, a['img_target_paths'].replace('.png', '.exr'))
         img_target = load_exr(img_target_path)
         # img_target = augment_data(img_target, [self.out_res, self.out_res], zoom=zoom, rot=r, shift=shift)
         img_target = resize(img_target, self.out_res, self.out_res)
