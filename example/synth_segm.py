@@ -27,10 +27,11 @@ import pose.models as models
 import pose.datasets as datasets
 
 model_names = sorted(name for name in models.__dict__
-    if name.islower() and not name.startswith("__")
-    and callable(models.__dict__[name]))
+                     if name.islower() and not name.startswith("__")
+                     and callable(models.__dict__[name]))
 
 best_acc = 0
+
 
 def main(args):
     global best_acc
@@ -40,18 +41,20 @@ def main(args):
         mkdir_p(args.checkpoint)
 
     # create model
-    print("==> creating model '{}', stacks={}, blocks={}".format(args.arch, args.stacks, args.blocks))
-    model = models.__dict__[args.arch](num_stacks=args.stacks, num_blocks=args.blocks, num_classes=args.num_classes)
+    print("==> creating model '{}', stacks={}, blocks={}".format(
+        args.arch, args.stacks, args.blocks))
+    model = models.__dict__[args.arch](
+        num_stacks=args.stacks, num_blocks=args.blocks, num_classes=args.num_classes)
 
     model = torch.nn.DataParallel(model).cuda()
 
     # define loss function (criterion) and optimizer
     criterion = torch.nn.MSELoss(size_average=True).cuda()
 
-    optimizer = torch.optim.RMSprop(model.parameters(), 
-                                lr=args.lr,
-                                momentum=args.momentum,
-                                weight_decay=args.weight_decay)
+    optimizer = torch.optim.RMSprop(model.parameters(),
+                                    lr=args.lr,
+                                    momentum=args.momentum,
+                                    weight_decay=args.weight_decay)
 
     # optionally resume from a checkpoint
     title = 'synth-' + args.arch
@@ -65,54 +68,61 @@ def main(args):
             optimizer.load_state_dict(checkpoint['optimizer'])
             print("=> loaded checkpoint '{}' (epoch {})"
                   .format(args.resume, checkpoint['epoch']))
-            logger = Logger(join(args.checkpoint, 'log.txt'), title=title, resume=True)
+            logger = Logger(join(args.checkpoint, 'log.txt'),
+                            title=title, resume=True)
         else:
             print("=> no checkpoint found at '{}'".format(args.resume))
-    else:        
+    else:
         logger = Logger(join(args.checkpoint, 'log.txt'), title=title)
-        logger.set_names(['Epoch', 'LR', 'Train Loss', 'Val Loss', 'Train Acc', 'Val Acc'])
+        logger.set_names(['Epoch', 'LR', 'Train Loss',
+                          'Val Loss', 'Train Acc', 'Val Acc'])
 
     cudnn.benchmark = True
-    print('    Total params: %.2fM' % (sum(p.numel() for p in model.parameters())/1000000.0))
+    print('    Total params: %.2fM' % (sum(p.numel()
+                                           for p in model.parameters()) / 1000000.0))
 
     # Data loading code
     train_loader = torch.utils.data.DataLoader(
         datasets.Synth('data/synth/synth_segm_annotations.json', 'data/synth/',
-                      sigma=args.sigma, augmented=args.augmented),
+                       sigma=args.sigma, augmented=args.augmented),
         batch_size=args.train_batch, shuffle=True,
         num_workers=args.workers, pin_memory=True)
-    
+
     val_loader = torch.utils.data.DataLoader(
         datasets.Synth('data/synth/synth_segm_annotations.json', 'data/synth/',
-                      sigma=args.sigma, augmented=args.augmented, train=False),
+                       sigma=args.sigma, augmented=args.augmented, train=False),
         batch_size=args.test_batch, shuffle=False,
         num_workers=args.workers, pin_memory=True)
 
     if args.evaluate:
-        print('\nEvaluation only') 
-        loss, acc, predictions = validate(val_loader, model, criterion, args.num_classes, args.debug, args.flip)
+        print('\nEvaluation only')
+        loss, acc, predictions = validate(
+            val_loader, model, criterion, args.num_classes, args.debug, args.flip)
         save_pred(predictions, checkpoint=args.checkpoint)
         return
 
     lr = args.lr
     for epoch in range(args.start_epoch, args.epochs):
-        lr = adjust_learning_rate(optimizer, epoch, lr, args.schedule, args.gamma)
+        lr = adjust_learning_rate(
+            optimizer, epoch, lr, args.schedule, args.gamma)
         print('\nEpoch: %d | LR: %.8f' % (epoch + 1, lr))
 
         # decay sigma
         if args.sigma_decay > 0:
-            train_loader.dataset.sigma *=  args.sigma_decay
-            val_loader.dataset.sigma *=  args.sigma_decay
+            train_loader.dataset.sigma *= args.sigma_decay
+            val_loader.dataset.sigma *= args.sigma_decay
 
         # train for one epoch
-        train_loss, train_acc = train(train_loader, model, criterion, optimizer, args.debug, args.flip)
+        train_loss, train_acc = train(
+            train_loader, model, criterion, optimizer, args.debug, args.flip)
 
         # evaluate on validation set
         valid_loss, valid_acc = validate(val_loader, model, criterion, args.num_classes,
-                                                      args.debug, args.flip)
+                                         args.debug, args.flip)
 
         # append logger file
-        logger.append([epoch + 1, lr, train_loss, valid_loss, train_acc, valid_acc])
+        logger.append([epoch + 1, lr, train_loss,
+                       valid_loss, train_acc, valid_acc])
 
         # remember best acc and save checkpoint
         is_best = valid_acc > best_acc
@@ -122,7 +132,7 @@ def main(args):
             'arch': args.arch,
             'state_dict': model.state_dict(),
             'best_acc': best_acc,
-            'optimizer' : optimizer.state_dict(),
+            'optimizer': optimizer.state_dict(),
         }, torch.FloatTensor([]), is_best, checkpoint=args.checkpoint)
 
     logger.close()
@@ -159,12 +169,13 @@ def train(train_loader, model, criterion, optimizer, debug=False, flip=True):
             loss += criterion(output[j], target_var)
         acc = accuracy_segm(score_map, target)
 
-
         if debug:
             for j in range(len(score_map)):
                 save_im_in(inputs[j], "debug/test_in_{}.jpg".format(j))
-                save_im_out(score_map[j,0,:,:], "debug/test_out_{}.jpg".format(j))
-                save_im_out(target[j,0,:,:], "debug/test_target_{}.jpg".format(j))
+                save_im_out(score_map[j, 0, :, :],
+                            "debug/test_out_{}.jpg".format(j))
+                save_im_out(target[j, 0, :, :],
+                            "debug/test_target_{}.jpg".format(j))
 
         # measure accuracy and record loss
         losses.update(loss.data[0], inputs.size(0))
@@ -180,16 +191,16 @@ def train(train_loader, model, criterion, optimizer, debug=False, flip=True):
         end = time.time()
 
         # plot progress
-        bar.suffix  = '({batch}/{size}) Data: {data:.6f}s | Batch: {bt:.3f}s | Total: {total:} | ETA: {eta:} | Loss: {loss:.4f} | Acc: {acc: .4f}'.format(
-                    batch=i + 1,
-                    size=len(train_loader),
-                    data=data_time.val,
-                    bt=batch_time.val,
-                    total=bar.elapsed_td,
-                    eta=bar.eta_td,
-                    loss=losses.avg,
-                    acc=acces.avg
-                    )
+        bar.suffix = '({batch}/{size}) Data: {data:.6f}s | Batch: {bt:.3f}s | Total: {total:} | ETA: {eta:} | Loss: {loss:.4f} | Acc: {acc: .4f}'.format(
+            batch=i + 1,
+            size=len(train_loader),
+            data=data_time.val,
+            bt=batch_time.val,
+            total=bar.elapsed_td,
+            eta=bar.eta_td,
+            loss=losses.avg,
+            acc=acces.avg
+        )
         bar.next()
 
     bar.finish()
@@ -225,14 +236,13 @@ def validate(val_loader, model, criterion, num_classes, debug=False, flip=True):
         score_map = output[-1].data.cpu()
         if flip:
             flip_input_var = torch.autograd.Variable(
-                    torch.from_numpy(fliplr(inputs.clone().numpy())).float().cuda(), 
-                    volatile=True
-                )
+                torch.from_numpy(
+                    fliplr(inputs.clone().numpy())).float().cuda(),
+                volatile=True
+            )
             flip_output_var = model(flip_input_var)
             flip_output = flip_back(flip_output_var[-1].data.cpu())
             score_map += flip_output
-
-
 
         loss = 0
         for o in output:
@@ -242,8 +252,10 @@ def validate(val_loader, model, criterion, num_classes, debug=False, flip=True):
         if debug:
             for j in range(len(score_map)):
                 save_im_in(inputs[j], "debug/test_in_{}.jpg".format(j))
-                save_im_out(score_map[j,0,:,:], "debug/test_out_{}.jpg".format(j))
-                save_im_out(target[j,0,:,:], "debug/test_target_{}.jpg".format(j))
+                save_im_out(score_map[j, 0, :, :],
+                            "debug/test_out_{}.jpg".format(j))
+                save_im_out(target[j, 0, :, :],
+                            "debug/test_target_{}.jpg".format(j))
 
         # measure accuracy and record loss
         losses.update(loss.data[0], inputs.size(0))
@@ -254,20 +266,21 @@ def validate(val_loader, model, criterion, num_classes, debug=False, flip=True):
         end = time.time()
 
         # plot progress
-        bar.suffix  = '({batch}/{size}) Data: {data:.6f}s | Batch: {bt:.3f}s | Total: {total:} | ETA: {eta:} | Loss: {loss:.4f} | Acc: {acc: .4f}'.format(
-                    batch=i + 1,
-                    size=len(val_loader),
-                    data=data_time.val,
-                    bt=batch_time.avg,
-                    total=bar.elapsed_td,
-                    eta=bar.eta_td,
-                    loss=losses.avg,
-                    acc=acces.avg
-                    )
+        bar.suffix = '({batch}/{size}) Data: {data:.6f}s | Batch: {bt:.3f}s | Total: {total:} | ETA: {eta:} | Loss: {loss:.4f} | Acc: {acc: .4f}'.format(
+            batch=i + 1,
+            size=len(val_loader),
+            data=data_time.val,
+            bt=batch_time.avg,
+            total=bar.elapsed_td,
+            eta=bar.eta_td,
+            loss=losses.avg,
+            acc=acces.avg
+        )
         bar.next()
 
     bar.finish()
     return losses.avg, acces.avg
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='PyTorch ImageNet Training')
@@ -275,8 +288,8 @@ if __name__ == '__main__':
     parser.add_argument('--arch', '-a', metavar='ARCH', default='hg',
                         choices=model_names,
                         help='model architecture: ' +
-                            ' | '.join(model_names) +
-                            ' (default: resnet18)')
+                        ' | '.join(model_names) +
+                        ' (default: resnet18)')
     parser.add_argument('-s', '--stacks', default=8, type=int, metavar='N',
                         help='Number of hourglasses to stack')
     parser.add_argument('--features', default=256, type=int, metavar='N',
@@ -327,6 +340,5 @@ if __name__ == '__main__':
                         help='evaluate model on validation set')
     parser.add_argument('-d', '--debug', dest='debug', action='store_true',
                         help='show intermediate results')
-
 
     main(parser.parse_args())

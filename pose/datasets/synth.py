@@ -28,7 +28,7 @@ class Synth(data.Dataset):
         self.augmented = augmented
 
         # create train/val split
-        with open(jsonfile) as anno_file:   
+        with open(jsonfile) as anno_file:
             self.anno = json.load(anno_file)
 
         self.train, self.valid = [], []
@@ -49,7 +49,7 @@ class Synth(data.Dataset):
             for index in self.train:
                 a = self.anno[index]
                 img_path = os.path.join(self.img_folder, a['img_paths'])
-                img = load_image(img_path) # CxHxW
+                img = load_image(img_path)  # CxHxW
                 mean += img.view(img.size(0), -1).mean(1)
                 std += img.view(img.size(0), -1).std(1)
             mean /= len(self.train)
@@ -57,15 +57,21 @@ class Synth(data.Dataset):
             meanstd = {
                 'mean': mean,
                 'std': std,
-                }
+            }
             torch.save(meanstd, meanstd_file)
         if self.is_train:
-            print('    Mean: %.4f, %.4f, %.4f' % (meanstd['mean'][0], meanstd['mean'][1], meanstd['mean'][2]))
-            print('    Std:  %.4f, %.4f, %.4f' % (meanstd['std'][0], meanstd['std'][1], meanstd['std'][2]))
-            
+            print('    Mean: %.4f, %.4f, %.4f' %
+                  (meanstd['mean'][0], meanstd['mean'][1], meanstd['mean'][2]))
+            print('    Std:  %.4f, %.4f, %.4f' %
+                  (meanstd['std'][0], meanstd['std'][1], meanstd['std'][2]))
+
         return meanstd['mean'], meanstd['std']
 
     def __getitem__(self, index):
+        load_target = {'GUN': lambda x: torch.FloatTensor(self.out_res, self.out_res, 3),
+                       'EGO': load_image,
+                       'SYNTH': load_exr}
+
         zf = self.zoom_factor
         rf = self.rot_factor
         sxf, syf = self.shift_factor
@@ -84,11 +90,13 @@ class Synth(data.Dataset):
         zoom = 1
         shift = [0, 0]
         if self.is_train:
-            zoom = torch.randn(1).mul_(zf).add(1).clamp(0.6, 1.5)[0] if random.random() <= 0.6 else 1
-            r = torch.randn(1).mul_(rf).clamp(-2*rf, 2*rf)[0] if random.random() <= 0.6 else 0
+            zoom = torch.randn(1).mul_(zf).add(1).clamp(0.6, 1.5)[
+                0] if random.random() <= 0.6 else 1
+            r = torch.randn(1).mul_(rf).clamp(-2 * rf, 2 *
+                                              rf)[0] if random.random() <= 0.6 else 0
             if random.random() <= 0.6:
-                sx = torch.randn(1).mul_(syf).clamp(-2*syf, 2*syf)[0]
-                sy = torch.randn(1).mul_(sxf).clamp(-2*sxf, 2*sxf)[0]
+                sx = torch.randn(1).mul_(syf).clamp(-2 * syf, 2 * syf)[0]
+                sy = torch.randn(1).mul_(sxf).clamp(-2 * sxf, 2 * sxf)[0]
                 shift = [int(sx), int(sy)]
 
             # Color
@@ -102,15 +110,15 @@ class Synth(data.Dataset):
         inp = color_normalize(inp, self.mean, self.std)
 
         # Generate ground truth
-        img_target_path = img_path if a['dataset'] == 'GUN' else os.path.join(self.img_folder, a['img_target_paths'].replace('.png', '.exr'))
-        img_target = load_exr(img_target_path)
+        img_target_path = os.path.join(self.img_folder, a['img_target_paths'])
+        img_target = load_target[a['dataset']](img_target_path)
         # img_target = augment_data(img_target, [self.out_res, self.out_res], zoom=zoom, rot=r, shift=shift)
         img_target = resize(img_target, self.out_res, self.out_res)
 
         target = to_grey(img_target)
 
         # Meta info
-        meta = {'index' : index}
+        meta = {'index': index}
 
         return inp, target, meta
 
