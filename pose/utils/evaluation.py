@@ -53,8 +53,7 @@ def accuracy_segm(output, target):
         Expect output and target to be (nxdx1) tensors
     '''
     smooth = 1.
-
-    iflat = output.view(-1)
+    iflat = torch.clamp(output, min=0, max=1).view(-1)
     tflat = target.view(-1)
     intersection = (iflat * tflat).sum()
 
