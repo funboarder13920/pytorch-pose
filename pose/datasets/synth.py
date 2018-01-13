@@ -16,16 +16,15 @@ from pose.utils.transforms import *
 
 class Synth(data.Dataset):
     def __init__(self, jsonfile, img_folder, inp_res=256, out_res=64, train=True, sigma=1,
-                 zoom_factor=0.2, rot_factor=30, shift_factor=[30, 30], augmented=False):
+                 scale_factor=0.25, rot_factor=30, center_factor=[30, 20]):
         self.img_folder = img_folder    # root image folders
         self.is_train = train           # training set or test set
         self.inp_res = inp_res
         self.out_res = out_res
         self.sigma = sigma
-        self.zoom_factor = zoom_factor
-        self.shift_factor = shift_factor
+        self.scale_factor = scale_factor
+        self.center_factor = center_factor
         self.rot_factor = rot_factor
-        self.augmented = augmented
 
         # create train/val split
         with open(jsonfile) as anno_file:
@@ -72,9 +71,9 @@ class Synth(data.Dataset):
                        'EGO': load_image,
                        'SYNTH': load_exr}
 
-        zf = self.zoom_factor
+        zf = self.scale_factor
         rf = self.rot_factor
-        sxf, syf = self.shift_factor
+        sxf, syf = self.center_factor
         if self.is_train:
             a = self.anno[self.train[index]]
         else:
@@ -86,18 +85,18 @@ class Synth(data.Dataset):
         # For single-person pose estimation with a centered/scaled figure
         img = load_image(img_path)  # CxHxW
 
-        r = 0
-        zoom = 1
-        shift = [0, 0]
+        rot = 0
+        scale = 1
+        center = np.array([img.shape[2]//2, img.shape[1]//2])
         if self.is_train:
-            zoom = torch.randn(1).mul_(zf).add(1).clamp(0.6, 1.5)[
+            scale = torch.randn(1).mul_(zf).add(1).clamp(0.4, 1.5)[
                 0] if random.random() <= 0.6 else 1
-            r = torch.randn(1).mul_(rf).clamp(-2 * rf, 2 *
+            rot = torch.randn(1).mul_(rf).clamp(-2 * rf, 2 *
                                               rf)[0] if random.random() <= 0.6 else 0
             if random.random() <= 0.6:
-                sx = torch.randn(1).mul_(syf).clamp(-2 * syf, 2 * syf)[0]
-                sy = torch.randn(1).mul_(sxf).clamp(-2 * sxf, 2 * sxf)[0]
-                shift = [int(sx), int(sy)]
+                sx = torch.randn(1).mul_(sxf).clamp(-2 * sxf, 2 * sxf).add(float(center[0]))[0]
+                sy = torch.randn(1).mul_(syf).clamp(-2 * syf, 2 * syf).add(float(center[1]))[0]
+                center = np.array([int(sx), int(sy)])
 
             # Color
             img[0, :, :].mul_(random.uniform(0.8, 1.2)).clamp_(0, 1)
@@ -105,15 +104,14 @@ class Synth(data.Dataset):
             img[2, :, :].mul_(random.uniform(0.8, 1.2)).clamp_(0, 1)
 
         # Prepare image and groundtruth map
-        # inp = augment_data(img, [self.inp_res, self.inp_res], zoom=zoom, rot=r, shift=shift)
-        inp = resize(img, self.inp_res, self.inp_res)
+        inp = crop(img, center, scale, [self.inp_res, self.inp_res], rot=rot)
         inp = color_normalize(inp, self.mean, self.std)
 
         # Generate ground truth
         img_target_path = os.path.join(self.img_folder, a['img_target_paths'])
         img_target = load_target[a['dataset']](img_target_path)
-        # img_target = augment_data(img_target, [self.out_res, self.out_res], zoom=zoom, rot=r, shift=shift)
-        img_target = resize(img_target, self.out_res, self.out_res)
+        img_target = resize(img_target, img.shape[2], img.shape[1])
+        img_target = crop(img_target, center, scale, [self.out_res, self.out_res], rot=rot)
 
         target = to_grey(img_target)
 

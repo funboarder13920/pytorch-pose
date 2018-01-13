@@ -83,14 +83,14 @@ def main(args):
 
     # Data loading code
     train_loader = torch.utils.data.DataLoader(
-        datasets.Synth('data/synth/synth_segm_annotations.json', 'data/synth/',
-                       sigma=args.sigma, augmented=args.augmented),
+        datasets.Synth('data/synth/synth_segm_refined_annotations.json', 'data/synth/',
+                       sigma=args.sigma),
         batch_size=args.train_batch, shuffle=True,
         num_workers=args.workers, pin_memory=True)
 
     val_loader = torch.utils.data.DataLoader(
-        datasets.Synth('data/synth/synth_segm_annotations.json', 'data/synth/',
-                       sigma=args.sigma, augmented=args.augmented, train=False),
+        datasets.Synth('data/synth/synth_segm_refined_annotations.json', 'data/synth/',
+                       sigma=args.sigma, train=False),
         batch_size=args.test_batch, shuffle=False,
         num_workers=args.workers, pin_memory=True)
 
@@ -329,8 +329,6 @@ if __name__ == '__main__':
     parser.add_argument('--label-type', metavar='LABELTYPE', default='Gaussian',
                         choices=['Gaussian', 'Cauchy'],
                         help='Labelmap dist type: (default=Gaussian)')
-    parser.add_argument('--augmented', type=int, default=0, choices=[0, 1],
-                        help='activate data augmentation')
     # Miscs
     parser.add_argument('-c', '--checkpoint', default='checkpoint', type=str, metavar='PATH',
                         help='path to save checkpoint (default: checkpoint)')
