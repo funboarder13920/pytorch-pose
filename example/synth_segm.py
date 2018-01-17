@@ -75,7 +75,7 @@ def main(args):
     else:
         logger = Logger(join(args.checkpoint, 'log.txt'), title=title)
         logger.set_names(['Epoch', 'LR', 'Train Loss',
-                          'Val Loss', 'Train Acc', 'Val Acc'])
+                          'Val Loss', 'Train Acc', 'Synth Val Acc', 'Ref Val Acc', 'Ego Val Acc'])
 
     cudnn.benchmark = True
     print('    Total params: %.2fM' % (sum(p.numel()
@@ -83,13 +83,25 @@ def main(args):
 
     # Data loading code
     train_loader = torch.utils.data.DataLoader(
-        datasets.Synth('data/synth/synth_segm_refined_annotations.json', 'data/synth/',
+        datasets.Synth('data/synth/synth_segm_refined_annotations_2.json', 'data/synth/',
                        sigma=args.sigma),
         batch_size=args.train_batch, shuffle=True,
         num_workers=args.workers, pin_memory=True)
 
-    val_loader = torch.utils.data.DataLoader(
-        datasets.Synth('data/synth/synth_segm_refined_annotations.json', 'data/synth/',
+    synth_val_loader = torch.utils.data.DataLoader(
+        datasets.Synth('data/synth/synth_segm_annotations.json', 'data/synth/',
+                       sigma=args.sigma, train=False),
+        batch_size=args.test_batch, shuffle=False,
+        num_workers=args.workers, pin_memory=True)
+
+    ref_val_loader = torch.utils.data.DataLoader(
+        datasets.Synth('data/synth/synth_segm_refined_annotations_2.json', 'data/synth/',
+                       sigma=args.sigma, train=False),
+        batch_size=args.test_batch, shuffle=False,
+        num_workers=args.workers, pin_memory=True)
+
+    ego_val_loader = torch.utils.data.DataLoader(
+        datasets.Synth('data/synth/ego_segm_annotations.json', 'data/synth/',
                        sigma=args.sigma, train=False),
         batch_size=args.test_batch, shuffle=False,
         num_workers=args.workers, pin_memory=True)
@@ -105,7 +117,7 @@ def main(args):
     for epoch in range(args.start_epoch, args.epochs):
         lr = adjust_learning_rate(
             optimizer, epoch, lr, args.schedule, args.gamma)
-        print('\nEpoch: %d | LR: %.8f' % (epoch + 1, lr))
+        print('\nEpoch: %d | LR: %.8f' % ((epoch + 1)/2, lr))
 
         # decay sigma
         if args.sigma_decay > 0:
@@ -114,21 +126,27 @@ def main(args):
 
         # train for one epoch
         train_loss, train_acc = train(
-            train_loader, model, criterion, optimizer, args.debug, args.flip)
+            train_loader, model, criterion, optimizer, epoch%2, args.debug, args.flip)
 
         # evaluate on validation set
-        valid_loss, valid_acc = validate(val_loader, model, criterion, args.num_classes,
+        _, ref_valid_acc = validate(synth_val_loader, model, criterion, args.num_classes,
+                                         args.debug, args.flip)
+
+        valid_loss, ref_valid_acc = validate(ref_val_loader, model, criterion, args.num_classes,
+                                         args.debug, args.flip)
+
+        _, ego_valid_acc = validate(ego_val_loader, model, criterion, args.num_classes,
                                          args.debug, args.flip)
 
         # append logger file
-        logger.append([epoch + 1, lr, train_loss,
-                       valid_loss, train_acc, valid_acc])
+        logger.append([(epoch + 1)/2, lr, train_loss,
+                       valid_loss, train_acc, synth_valid_acc, ref_valid_acc, ego_valid_acc])
 
         # remember best acc and save checkpoint
         is_best = valid_acc > best_acc
         best_acc = max(valid_acc, best_acc)
         save_checkpoint({
-            'epoch': epoch + 1,
+            'epoch': (epoch + 1)/2,
             'arch': args.arch,
             'state_dict': model.state_dict(),
             'best_acc': best_acc,
@@ -136,11 +154,11 @@ def main(args):
         }, torch.FloatTensor([]), is_best, checkpoint=args.checkpoint)
 
     logger.close()
-    logger.plot(['Train Acc', 'Val Acc'])
+    logger.plot(['Train Acc', 'Ref Val Acc'])
     savefig(os.path.join(args.checkpoint, 'log.eps'))
 
 
-def train(train_loader, model, criterion, optimizer, debug=False, flip=True):
+def train(train_loader, model, criterion, optimizer, demi_epoch, debug=False, flip=True):
     batch_time = AverageMeter()
     data_time = AverageMeter()
     losses = AverageMeter()
@@ -154,6 +172,10 @@ def train(train_loader, model, criterion, optimizer, debug=False, flip=True):
     gt_win, pred_win = None, None
     bar = Bar('Processing', max=len(train_loader))
     for i, (inputs, target, meta) in enumerate(train_loader):
+        if demi_epoch == 0 and i > len(train_loader)/2:
+            continue
+        if demi_epoch == 1 and i <= len(train_loader)/2:
+            continue
         # measure data loading time
         data_time.update(time.time() - end)
 
