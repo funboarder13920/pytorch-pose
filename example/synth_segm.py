@@ -117,7 +117,7 @@ def main(args):
     for epoch in range(args.start_epoch, args.epochs):
         lr = adjust_learning_rate(
             optimizer, epoch, lr, args.schedule, args.gamma)
-        print('\nEpoch: %d | LR: %.8f' % ((epoch + 1)/2, lr))
+        print('\nEpoch: %d | LR: %.8f' % (epoch + 1, lr))
 
         # decay sigma
         if args.sigma_decay > 0:
@@ -126,7 +126,7 @@ def main(args):
 
         # train for one epoch
         train_loss, train_acc = train(
-            train_loader, model, criterion, optimizer, epoch%2, args.debug, args.flip)
+            train_loader, model, criterion, optimizer, synth_val_loader, ref_val_loader, ego_val_loader, logger, args.num_classes, args.debug, args.flip)
 
         # evaluate on validation set
         _, ref_valid_acc = validate(synth_val_loader, model, criterion, args.num_classes,
@@ -139,14 +139,14 @@ def main(args):
                                          args.debug, args.flip)
 
         # append logger file
-        logger.append([(epoch + 1)/2, lr, train_loss,
+        logger.append([epoch + 1, lr, train_loss,
                        valid_loss, train_acc, synth_valid_acc, ref_valid_acc, ego_valid_acc])
 
         # remember best acc and save checkpoint
         is_best = valid_acc > best_acc
         best_acc = max(valid_acc, best_acc)
         save_checkpoint({
-            'epoch': (epoch + 1)/2,
+            'epoch': epoch + 1,
             'arch': args.arch,
             'state_dict': model.state_dict(),
             'best_acc': best_acc,
@@ -158,7 +158,7 @@ def main(args):
     savefig(os.path.join(args.checkpoint, 'log.eps'))
 
 
-def train(train_loader, model, criterion, optimizer, demi_epoch, debug=False, flip=True):
+def train(train_loader, model, criterion, optimizer, synth_val_loader, ref_val_loader, ego_val_loader, logger, num_classes,  debug=False, flip=True):
     batch_time = AverageMeter()
     data_time = AverageMeter()
     losses = AverageMeter()
@@ -172,10 +172,21 @@ def train(train_loader, model, criterion, optimizer, demi_epoch, debug=False, fl
     gt_win, pred_win = None, None
     bar = Bar('Processing', max=len(train_loader))
     for i, (inputs, target, meta) in enumerate(train_loader):
-        if demi_epoch == 0 and i > len(train_loader)/2:
-            continue
-        if demi_epoch == 1 and i <= len(train_loader)/2:
-            continue
+        if i == len(train_loader)//2:
+            print('demi epoch')
+            # evaluate on validation set
+            _, ref_valid_acc = validate(synth_val_loader, model, criterion, num_classes,
+                                             debug, flip)
+
+            valid_loss, ref_valid_acc = validate(ref_val_loader, model, criterion, num_classes,
+                                             debug, flip)
+
+            _, ego_valid_acc = validate(ego_val_loader, model, criterion, num_classes,
+                                             debug, flip)
+
+            # append logger file
+            logger.append([(epoch + 1)/2, 0.0001, losses.avg, acces.avg,
+                       valid_loss, train_acc, synth_valid_acc, ref_valid_acc, ego_valid_acc])
         # measure data loading time
         data_time.update(time.time() - end)
 
