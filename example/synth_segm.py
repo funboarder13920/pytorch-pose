@@ -129,7 +129,7 @@ def main(args):
             train_loader, model, criterion, optimizer, synth_val_loader, ref_val_loader, ego_val_loader, logger, args.num_classes, args.debug, args.flip)
 
         # evaluate on validation set
-        _, ref_valid_acc = validate(synth_val_loader, model, criterion, args.num_classes,
+        _, synth_valid_acc = validate(synth_val_loader, model, criterion, args.num_classes,
                                          args.debug, args.flip)
 
         valid_loss, ref_valid_acc = validate(ref_val_loader, model, criterion, args.num_classes,
@@ -175,7 +175,7 @@ def train(train_loader, model, criterion, optimizer, synth_val_loader, ref_val_l
         if i == len(train_loader)//2:
             print('demi epoch')
             # evaluate on validation set
-            _, ref_valid_acc = validate(synth_val_loader, model, criterion, num_classes,
+            _, synth_valid_acc = validate(synth_val_loader, model, criterion, num_classes,
                                              debug, flip)
 
             valid_loss, ref_valid_acc = validate(ref_val_loader, model, criterion, num_classes,
@@ -185,8 +185,8 @@ def train(train_loader, model, criterion, optimizer, synth_val_loader, ref_val_l
                                              debug, flip)
 
             # append logger file
-            logger.append([(epoch + 1)/2, 0.0001, losses.avg, acces.avg,
-                       valid_loss, train_acc, synth_valid_acc, ref_valid_acc, ego_valid_acc])
+            logger.append([0.5, 0.0001, losses.avg, valid_loss, acces.avg,
+                       synth_valid_acc, ref_valid_acc, ego_valid_acc])
         # measure data loading time
         data_time.update(time.time() - end)
 
