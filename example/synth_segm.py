@@ -138,6 +138,7 @@ def main(args):
         _, ego_valid_acc = validate(ego_val_loader, model, criterion, args.num_classes,
                                          args.debug, args.flip)
 
+        valid_acc = ref_valid_acc
         # append logger file
         logger.append([epoch + 1, lr, train_loss,
                        valid_loss, train_acc, synth_valid_acc, ref_valid_acc, ego_valid_acc])
