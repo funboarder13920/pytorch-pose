@@ -11,7 +11,7 @@ addpath('jsonlab/')
 count = 1;
 train_perc = 0.6;
 
-imgs = dir([SYNTHROOTLOCAL IMG '*.png']);
+imgs = dir([SYNTHROOTLOCAL IMG '*.jpg']);
 imgs = imgs(randperm(size(imgs,1)));
 nb_train = int32(train_perc*size(imgs,1));
 
