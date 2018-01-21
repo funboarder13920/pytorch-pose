@@ -16,7 +16,7 @@ from pose.utils.transforms import *
 
 class Synth(data.Dataset):
     def __init__(self, jsonfile, img_folder, inp_res=256, out_res=64, train=True, sigma=1,
-                 scale_factor=0.25, rot_factor=30, center_factor=[30, 20]):
+                 scale_factor=0.25, rot_factor=30, center_factor=[30, 20], blur_factor=1.4):
         self.img_folder = img_folder    # root image folders
         self.is_train = train           # training set or test set
         self.inp_res = inp_res
@@ -73,6 +73,7 @@ class Synth(data.Dataset):
 
         zf = self.scale_factor
         rf = self.rot_factor
+        bf = self.blur_factor
         sxf, syf = self.center_factor
         if self.is_train:
             a = self.anno[self.train[index]]
@@ -88,11 +89,14 @@ class Synth(data.Dataset):
         rot = 0
         scale = 1
         center = np.array([img.shape[2]//2, img.shape[1]//2])
+        blur_sigma = None
         if self.is_train:
             scale = torch.randn(1).mul_(zf).add(1).clamp(0.4, 1.5)[
                 0] if random.random() <= 0.6 else 1
             rot = torch.randn(1).mul_(rf).clamp(-2 * rf, 2 *
                                               rf)[0] if random.random() <= 0.6 else 0
+            blur = torch.randn(1).mul_(rf).add_(1.6).clamp(0.5, 3
+                                              )[0] if random.random() <= 0.6 else 0.5
             if random.random() <= 0.6:
                 sx = torch.randn(1).mul_(sxf).clamp(-2 * sxf, 2 * sxf).add(float(center[0]))[0]
                 sy = torch.randn(1).mul_(syf).clamp(-2 * syf, 2 * syf).add(float(center[1]))[0]
@@ -104,7 +108,7 @@ class Synth(data.Dataset):
             img[2, :, :].mul_(random.uniform(0.8, 1.2)).clamp_(0, 1)
 
         # Prepare image and groundtruth map
-        inp = crop(img, center, scale, [self.inp_res, self.inp_res], rot=rot)
+        inp = crop(img, center, scale, [self.inp_res, self.inp_res], rot=rot, blur_sigma=blur_sigma)
         inp = color_normalize(inp, self.mean, self.std)
 
         # Generate ground truth

@@ -125,7 +125,7 @@ def transform_preds(coords, center, scale, res):
         coords[p, 0:2] = to_torch(transform(coords[p, 0:2], center, scale, res, 1, 0))
     return coords
 
-def crop(img, center, scale, res, rot=0):
+def crop(img, center, scale, res, rot=0, blur_sigma=None):
     img = im_to_numpy(img)
 
     # Preprocessing for efficient cropping
@@ -173,6 +173,9 @@ def crop(img, center, scale, res, rot=0):
         # Remove padding
         new_img = scipy.misc.imrotate(new_img, rot)
         new_img = new_img[pad:-pad, pad:-pad]
+
+    if blur_sigma:
+        new_img = scipy.ndimage.gaussian_filter(new_img, blur_sigma)
 
     new_img = im_to_torch(scipy.misc.imresize(new_img, res))
     return new_img
