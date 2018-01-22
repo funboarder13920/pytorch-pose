@@ -25,6 +25,7 @@ class Synth(data.Dataset):
         self.scale_factor = scale_factor
         self.center_factor = center_factor
         self.rot_factor = rot_factor
+        self.blur_factor = blur_factor
 
         # create train/val split
         with open(jsonfile) as anno_file:
